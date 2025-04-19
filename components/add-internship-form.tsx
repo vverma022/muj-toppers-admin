@@ -8,6 +8,7 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
+import { useAddInternship } from "@/hooks/internship"
 
 const formSchema = z.object({
   companyName: z.string().min(2, {
@@ -28,6 +29,8 @@ const formSchema = z.object({
 })
 
 export function AddInternshipForm() {
+  const addInternshipMutation = useAddInternship();
+  
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -37,16 +40,25 @@ export function AddInternshipForm() {
       url: "",
     },
   })
-
+  
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values)
-    toast({
-      title: "Internship Added",
-      description: `${values.companyName} internship has been added successfully.`,
-    })
-    form.reset()
+    const data = {
+      ...values,
+      stipendMin: parseFloat(values.stipendMin),
+      stipendMax: parseFloat(values.stipendMax),
+    };
+    
+    addInternshipMutation.mutate(data, {
+      onSuccess: () => {
+        console.log('Internship added successfully:', data);
+        form.reset();
+      },
+      onError: (error) => {
+        console.error('Failed to add internship:', error);
+      },
+    });
   }
-
+  
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -64,7 +76,7 @@ export function AddInternshipForm() {
               </FormItem>
             )}
           />
-
+          
           <FormField
             control={form.control}
             name="mode"
@@ -88,7 +100,7 @@ export function AddInternshipForm() {
             )}
           />
         </div>
-
+        
         <div className="grid gap-6 sm:grid-cols-2">
           <FormField
             control={form.control}
@@ -103,7 +115,7 @@ export function AddInternshipForm() {
               </FormItem>
             )}
           />
-
+          
           <FormField
             control={form.control}
             name="stipendMax"
@@ -118,7 +130,7 @@ export function AddInternshipForm() {
             )}
           />
         </div>
-
+        
         <FormField
           control={form.control}
           name="url"
@@ -133,9 +145,13 @@ export function AddInternshipForm() {
             </FormItem>
           )}
         />
-
-        <Button type="submit" className="w-full sm:w-auto">
-          Add Internship
+        
+        <Button 
+          type="submit" 
+          className="w-full sm:w-auto"
+          disabled={addInternshipMutation.isLoading}
+        >
+          {addInternshipMutation.isLoading ? "Adding..." : "Add Internship"}
         </Button>
       </form>
     </Form>

@@ -14,6 +14,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import Image from "next/image"
 
 export function AdminSidebar() {
   const pathname = usePathname()
@@ -22,7 +23,14 @@ export function AdminSidebar() {
     <Sidebar>
       <SidebarHeader className="border-b border-border">
         <div className="flex items-center gap-2 px-4 py-3">
-          <BriefcaseBusiness className="h-6 w-6" />
+           <Image
+            src="/17(200).png"
+            alt="MUJ Toppers Logo"
+            width={40}
+            height={40}
+            className="rounded-full"
+            priority
+            />
           <span className="font-bold text-xl">MUJ Toppers</span>
         </div>
       </SidebarHeader>
