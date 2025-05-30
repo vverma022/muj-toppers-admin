@@ -120,12 +120,38 @@ exports.Prisma.TransactionIsolationLevel = makeStrictEnum({
 exports.Prisma.InternshipScalarFieldEnum = {
   id: 'id',
   companyName: 'companyName',
+  companyDescription: 'companyDescription',
+  Skills: 'Skills',
+  Responsibilities: 'Responsibilities',
+  Requirements: 'Requirements',
+  Batches: 'Batches',
+  Duration: 'Duration',
+  Location: 'Location',
   mode: 'mode',
+  type: 'type',
   stipendMin: 'stipendMin',
   stipendMax: 'stipendMax',
   url: 'url',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.BlogScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  content: 'content',
+  category: 'category',
+  tags: 'tags',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CoverImageScalarFieldEnum = {
+  id: 'id',
+  fileName: 'fileName',
+  fileUrl: 'fileUrl',
+  createdAt: 'createdAt',
+  blogId: 'blogId'
 };
 
 exports.Prisma.SortOrder = {
@@ -140,7 +166,9 @@ exports.Prisma.QueryMode = {
 
 
 exports.Prisma.ModelName = {
-  Internship: 'Internship'
+  Internship: 'Internship',
+  Blog: 'Blog',
+  CoverImage: 'CoverImage'
 };
 
 /**

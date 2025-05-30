@@ -1,14 +1,11 @@
-import { PrismaClient } from "@/src/app/generated/prisma";
+import { PrismaClient } from '../src/app/generated/prisma'
 
-// Prevent multiple instances of Prisma Client in development
-declare global {
-  var prisma: PrismaClient | undefined;
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
 }
 
-export const prisma =
-  global.prisma ||
-  new PrismaClient({
-    log: ['query', 'info', 'warn', 'error'], // Enable logging in development
-  });
+export const prisma = globalForPrisma.prisma ?? new PrismaClient({
+  log: ['query', 'error', 'warn'],
+})
 
-if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
