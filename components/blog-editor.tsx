@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Bold, Italic, Heading1, List, ImageIcon, Quote } from "lucide-react"
+import { Bold, Italic, Heading1, List, ImageIcon, Quote, Eye, Pencil } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -16,6 +16,7 @@ interface SimpleEditorProps {
 export function SimpleEditor({ content, setContent }: SimpleEditorProps) {
   const [imageUrl, setImageUrl] = useState("")
   const [textareaRef, setTextareaRef] = useState<HTMLTextAreaElement | null>(null)
+  const [isPreview, setIsPreview] = useState(false)
 
   const insertAtCursor = (before: string, after = "") => {
     if (textareaRef) {
@@ -72,47 +73,68 @@ export function SimpleEditor({ content, setContent }: SimpleEditorProps) {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2 p-2 bg-muted rounded-md">
-        {formatters.map((formatter, index) => (
-          <Button key={index} variant="ghost" size="sm" onClick={formatter.action} title={formatter.label}>
-            {formatter.icon}
-          </Button>
-        ))}
-
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button variant="ghost" size="sm" title="Insert Image">
-              <ImageIcon className="h-4 w-4" />
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Insert Image</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="image-url">Image URL</Label>
-                <Input
-                  id="image-url"
-                  placeholder="https://example.com/image.jpg"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                />
-              </div>
-              <Button onClick={insertImage} className="w-full">
-                Insert Image
+        {!isPreview && (
+          <>
+            {formatters.map((formatter, index) => (
+              <Button key={index} variant="ghost" size="sm" onClick={formatter.action} title={formatter.label}>
+                {formatter.icon}
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            ))}
+
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="ghost" size="sm" title="Insert Image">
+                  <ImageIcon className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Insert Image</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="image-url">Image URL</Label>
+                    <Input
+                      id="image-url"
+                      placeholder="https://example.com/image.jpg"
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={insertImage} className="w-full">
+                    Insert Image
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
+        )}
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setIsPreview(!isPreview)}
+          title={isPreview ? "Edit" : "Preview"}
+          className="ml-auto"
+        >
+          {isPreview ? <Pencil className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </Button>
       </div>
 
-      <Textarea
-        ref={setTextareaRef}
-        placeholder="Tell your story..."
-        className="min-h-[400px] text-lg leading-relaxed focus-visible:ring-0 focus-visible:ring-offset-0 resize-none border-none p-0"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-      />
+      {isPreview ? (
+        <div 
+          className="min-h-[400px] text-lg leading-relaxed p-4 border rounded-md prose prose-lg max-w-none"
+          dangerouslySetInnerHTML={{ __html: content }}
+        />
+      ) : (
+        <Textarea
+          ref={setTextareaRef}
+          placeholder="Tell your story..."
+          className="min-h-[400px] text-lg leading-relaxed focus-visible:ring-0 focus-visible:ring-offset-0 resize-none border-none p-0"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+        />
+      )}
     </div>
   )
 }
