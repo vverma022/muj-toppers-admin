@@ -3,7 +3,7 @@ import "@/app/globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { ClerkProvider } from "@clerk/nextjs"
+import Providers from "@/components/providers"
 import { Toaster } from "sonner"
 import { ReactQueryClientProvider } from "@/lib/reactqueryprovider"
 
@@ -22,16 +22,16 @@ export default function RootLayout({
 }>) {
   return (
     <ReactQueryClientProvider>
-    <ClerkProvider>
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
+      <Providers>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           {children}
         </ThemeProvider>
         <Toaster richColors  />
+        </Providers>
       </body>
     </html>
-    </ClerkProvider>
     </ReactQueryClientProvider>
   )
 }

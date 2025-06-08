@@ -1,4 +1,4 @@
-import { AddInternshipForm } from "@/components/add-internship-form"
+import { AddInternshipForm } from "@/components/intern/add-internship-form"
 
 export default function AddInternshipPage() {
   return (

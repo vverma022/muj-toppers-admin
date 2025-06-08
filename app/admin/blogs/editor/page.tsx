@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Send, X } from "lucide-react"
 import Link from "next/link"
-import { SimpleEditor } from "@/components/blog-editor"
+import { SimpleEditor } from "@/components/blogs/blog-editor"
 import { usePublishBlog } from '@/hooks/usePublishBlog'
 import { useToast } from "@/components/ui/use-toast"
 
@@ -20,23 +20,11 @@ export default function EditorPage() {
   const { toast } = useToast()
   const [title, setTitle] = useState("")
   const [content, setContent] = useState("")
-  const [coverImage, setCoverImage] = useState<File | null>(null)
   const [category, setCategory] = useState<string>("")
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState("")
 
   const { mutate: publishBlog, isLoading } = usePublishBlog();
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setCoverImage(file)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
 
   const addTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {

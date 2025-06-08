@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft, Calendar } from "lucide-react"
-import { BlogPreview } from "@/components/blog-preview"
+import { BlogPreview } from "@/components/blogs/blog-preview"
 import { notFound } from "next/navigation"
 
 interface BlogPost {
