@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 
 export async function POST(request: Request) {
-  // Handle CORS preflight request
   if (request.method === 'OPTIONS') {
     return new NextResponse(null, {
       status: 204,
@@ -15,10 +14,26 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { companyName, mode, stipendMin, stipendMax, url } = await request.json();
+    const { 
+      companyName, 
+      mode, 
+      stipendMin, 
+      stipendMax, 
+      url,
+      companyDescription,
+      Skills,
+      Responsibilities,
+      Requirements,
+      Batches,
+      Duration,
+      Location,
+      type
+    } = await request.json();
 
     // Validate data if necessary
-    if (!companyName || !mode || !stipendMin || !stipendMax || !url) {
+    if (!companyName || !mode || !stipendMin || !stipendMax || !url || 
+        !companyDescription || !Skills || !Responsibilities || !Requirements || 
+        !Batches || !Duration || !Location || !type) {
       return NextResponse.json(
         { error: 'All fields are required.' },
         { 
@@ -31,7 +46,21 @@ export async function POST(request: Request) {
     }
 
     const internship = await prisma.internship.create({
-      data: { companyName, mode, stipendMin, stipendMax, url },
+      data: { 
+        companyName, 
+        mode, 
+        stipendMin, 
+        stipendMax, 
+        url,
+        companyDescription,
+        Skills,
+        Responsibilities,
+        Requirements,
+        Batches,
+        Duration,
+        Location,
+        type
+      },
     });
 
     return NextResponse.json(internship, { 
