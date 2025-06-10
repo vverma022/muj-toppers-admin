@@ -39,10 +39,14 @@ export default function SignIn() {
       }
 
       toast.success("Signed in successfully!")
-      setTimeout(() => {
-        router.push("/admin")
-        router.refresh()
-      }, 3000)
+      
+      // Get the callback URL from the search params
+      const searchParams = new URLSearchParams(window.location.search)
+      const callbackUrl = searchParams.get('callbackUrl')
+      
+      // Redirect to callback URL if it exists, otherwise to /admin
+      router.push(callbackUrl || "/admin")
+      router.refresh()
     } catch (error) {
       setError("An error occurred. Please try again.")
     } finally {
