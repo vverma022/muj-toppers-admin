@@ -27,18 +27,27 @@ export default function SignIn() {
     const password = formData.get("password") as string
 
     try {
-      // Let NextAuth handle the redirection
       const result = await signIn("credentials", {
         email,
         password,
-        redirect: true,
-        callbackUrl: "/admin"
+        redirect: false,
       })
 
       if (result?.error) {
         setError("Invalid email or password")
         setIsLoading(false)
+        return
       }
+
+      toast.success("Signed in successfully!")
+
+      // Get the callback URL from the search params
+      const searchParams = new URLSearchParams(window.location.search)
+      const callbackUrl = searchParams.get('callbackUrl')
+
+      // Redirect to callback URL if it exists, otherwise to /admin
+      router.replace(callbackUrl || "/admin")
+
     } catch (error) {
       console.error('Sign in error:', error)
       setError("An error occurred. Please try again.")
