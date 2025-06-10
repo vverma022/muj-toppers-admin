@@ -48,11 +48,6 @@ export function AdminSidebar() {
       icon: FileText,
       label: "Blogs",
     },
-    {
-      href: "/admin/settings",
-      icon: Settings,
-      label: "Settings",
-    },
   ]
 
   return (
