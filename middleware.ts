@@ -1,34 +1,46 @@
-import { withAuth } from "next-auth/middleware"
+// This file can be empty or removed since we'll handle auth at the page level 
+
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
-export default withAuth(
-  function middleware(req) {
-    // If the user is not authenticated and trying to access a protected route
-    if (!req.nextauth.token) {
-      return NextResponse.redirect(new URL("/signin", req.url))
-    }
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token
-    },
+// Define public paths that don't require authentication
+const PUBLIC_PATHS = [
+  '/_next',
+  '/api',
+  '/signin',
+  '/public',
+] as const
+
+// Define file extensions that should be allowed without auth
+const ALLOWED_FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.ico', '.svg', '.css', '.js'] as const
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // Check if the path is public or a static asset
+  const isPublicPath = PUBLIC_PATHS.some(path => pathname.startsWith(path))
+  const isStaticAsset = ALLOWED_FILE_EXTENSIONS.some(ext => pathname.endsWith(ext))
+
+  if (isPublicPath || isStaticAsset) {
+    return NextResponse.next()
   }
-)
 
-// Protect all routes except:
-// - API routes (/api/*)
-// - Sign in page (/signin)
-// - Public assets (/_next/*, /favicon.ico, etc.)
+  // Check authentication for protected routes
+  const sessionToken = request.cookies.get('next-auth.session-token')
+  
+  if (!sessionToken) {
+    const signInUrl = new URL('/signin', request.url)
+    // Preserve the original URL as a redirect parameter
+    signInUrl.searchParams.set('callbackUrl', request.url)
+    return NextResponse.redirect(signInUrl)
+  }
+
+  return NextResponse.next()
+}
+
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - signin (sign in page)
-     */
-    "/((?!api|_next/static|_next/image|favicon.ico|signin).*)",
+    // Match all paths except static files, images, and favicon
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:jpg|jpeg|png|gif|ico|svg|css|js)$).*)',
   ],
 } 
