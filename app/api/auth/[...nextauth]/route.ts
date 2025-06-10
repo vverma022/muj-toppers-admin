@@ -35,6 +35,7 @@ export const authOptions: NextAuthOptions = {
   ],
   pages: {
     signIn: "/signin",
+    error: "/signin",
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -54,10 +55,11 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
+      // Always allow redirects to the same origin
+      if (url.startsWith(baseUrl)) return url
+      // Allow relative URLs
       if (url.startsWith("/")) return `${baseUrl}${url}`
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url
+      // Default to baseUrl
       return baseUrl
     },
   },
