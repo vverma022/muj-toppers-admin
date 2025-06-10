@@ -40,7 +40,7 @@ export default function SignIn() {
 
       toast.success("Signed in successfully!")
       setTimeout(() => {
-        router.push("/admin/blogs")
+        router.push("/admin")
         router.refresh()
       }, 3000)
     } catch (error) {
