@@ -44,10 +44,18 @@ export default function SignIn() {
       const searchParams = new URLSearchParams(window.location.search)
       const callbackUrl = searchParams.get('callbackUrl')
       
-      // Redirect to callback URL if it exists, otherwise to /admin
-      router.push(callbackUrl || "/admin")
+      // Log the callback URL for debugging
+      console.log('Callback URL:', callbackUrl)
+      
+      // Ensure we have a valid URL
+      const redirectUrl = callbackUrl || "/admin"
+      console.log('Redirecting to:', redirectUrl)
+      
+      // Use replace instead of push to prevent back button issues
+      router.replace(redirectUrl)
       router.refresh()
     } catch (error) {
+      console.error('Sign in error:', error)
       setError("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)
