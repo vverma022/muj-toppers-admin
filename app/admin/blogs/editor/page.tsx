@@ -2,28 +2,24 @@
 
 import type React from "react"
 
-import { useRef, useState, useEffect, useCallback } from "react"
+import { useState, useRef, useEffect } from "react"
 import {
   ArrowLeft,
   Bold,
   Italic,
   Underline,
-  Strikethrough,
   Heading1,
   Heading2,
   List,
   ListOrdered,
-  Quote,
   ImageIcon,
   Send,
   X,
-  Link,
-  Code,
-  Minus,
+  LinkIcon,
+  Eye,
   AlignLeft,
   AlignCenter,
   AlignRight,
-  Palette,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,49 +27,36 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { usePublishBlog } from "@/hooks/usePublishBlog"
-import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-
-interface ActiveStates {
-  bold: boolean
-  italic: boolean
-  underline: boolean
-  strikethrough: boolean
-  h1: boolean
-  h2: boolean
-  ul: boolean
-  ol: boolean
-  quote: boolean
-  justifyLeft: boolean
-  justifyCenter: boolean
-  justifyRight: boolean
-}
+import { useRouter } from "next/navigation"
 
 export default function BlogCreationPage() {
   const router = useRouter()
-  const publishBlog = usePublishBlog()
   const [title, setTitle] = useState("")
   const [category, setCategory] = useState("")
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState("")
-  const [activeStates, setActiveStates] = useState<ActiveStates>({
-    bold: false,
-    italic: false,
-    underline: false,
-    strikethrough: false,
-    h1: false,
-    h2: false,
-    ul: false,
-    ol: false,
-    quote: false,
-    justifyLeft: false,
-    justifyCenter: false,
-    justifyRight: false,
-  })
+  const [content, setContent] = useState("")
+  const [imageUrl, setImageUrl] = useState("")
+  const [linkText, setLinkText] = useState("")
   const [linkUrl, setLinkUrl] = useState("")
+  const [showImagePopover, setShowImagePopover] = useState(false)
   const [showLinkPopover, setShowLinkPopover] = useState(false)
+  const [isViewMode, setIsViewMode] = useState(false)
+  const [currentAlignment, setCurrentAlignment] = useState("left")
+
+  const publishBlog = usePublishBlog()
   const editorRef = useRef<HTMLDivElement>(null)
+
+  // Initialize editor with default content
+  useEffect(() => {
+    if (editorRef.current && !content) {
+      editorRef.current.innerHTML = "<p>Start writing your blog post...</p>"
+      setContent(editorRef.current.innerHTML)
+    }
+  }, [])
 
   const addTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
@@ -93,163 +76,174 @@ export default function BlogCreationPage() {
     }
   }
 
-  const updateActiveStates = useCallback(() => {
-    if (!editorRef.current) return
-
-    const newActiveStates: ActiveStates = {
-      bold: document.queryCommandState("bold"),
-      italic: document.queryCommandState("italic"),
-      underline: document.queryCommandState("underline"),
-      strikethrough: document.queryCommandState("strikeThrough"),
-      h1: document.queryCommandValue("formatBlock") === "h1",
-      h2: document.queryCommandValue("formatBlock") === "h2",
-      ul: document.queryCommandState("insertUnorderedList"),
-      ol: document.queryCommandState("insertOrderedList"),
-      quote: document.queryCommandValue("formatBlock") === "blockquote",
-      justifyLeft: document.queryCommandState("justifyLeft"),
-      justifyCenter: document.queryCommandState("justifyCenter"),
-      justifyRight: document.queryCommandState("justifyRight"),
-    }
-
-    setActiveStates(newActiveStates)
-  }, [])
-
-  const formatText = (format: string, value?: string) => {
-    if (!editorRef.current) return
-
-    editorRef.current.focus()
-
-    switch (format) {
-      case "bold":
-        document.execCommand("bold", false)
-        break
-      case "italic":
-        document.execCommand("italic", false)
-        break
-      case "underline":
-        document.execCommand("underline", false)
-        break
-      case "strikethrough":
-        document.execCommand("strikeThrough", false)
-        break
-      case "h1":
-        document.execCommand("formatBlock", false, "<h1>")
-        break
-      case "h2":
-        document.execCommand("formatBlock", false, "<h2>")
-        break
-      case "ul":
-        document.execCommand("insertUnorderedList", false)
-        break
-      case "ol":
-        document.execCommand("insertOrderedList", false)
-        break
-      case "quote":
-        document.execCommand("formatBlock", false, "<blockquote>")
-        break
-      case "link":
-        if (value) {
-          document.execCommand("createLink", false, value)
-          setShowLinkPopover(false)
-          setLinkUrl("")
-        }
-        break
-      case "code":
-        document.execCommand("formatBlock", false, "<code>")
-        break
-      case "hr":
-        document.execCommand("insertHorizontalRule", false)
-        break
-      case "justifyLeft":
-        document.execCommand("justifyLeft", false)
-        break
-      case "justifyCenter":
-        document.execCommand("justifyCenter", false)
-        break
-      case "justifyRight":
-        document.execCommand("justifyRight", false)
-        break
-      case "foreColor":
-        if (value) {
-          document.execCommand("foreColor", false, value)
-        }
-        break
-      default:
-        break
-    }
-
-    setTimeout(updateActiveStates, 10)
-  }
-
-  const insertLink = () => {
-    if (linkUrl) {
-      formatText("link", linkUrl)
-    }
-  }
-
-  const colors = [
-    "#000000",
-    "#374151",
-    "#dc2626",
-    "#ea580c",
-    "#d97706",
-    "#65a30d",
-    "#059669",
-    "#0891b2",
-    "#2563eb",
-    "#7c3aed",
-    "#c026d3",
-  ]
-
-  useEffect(() => {
+  // Focus editor and execute command
+  const executeCommand = (command: string, value?: string) => {
     if (editorRef.current) {
-      editorRef.current.innerHTML = ""
       editorRef.current.focus()
-
-      const handleSelectionChange = () => {
-        updateActiveStates()
-      }
-
-      const handleKeyUp = () => {
-        updateActiveStates()
-      }
-
-      const handleMouseUp = () => {
-        updateActiveStates()
-      }
-
-      document.addEventListener("selectionchange", handleSelectionChange)
-      editorRef.current.addEventListener("keyup", handleKeyUp)
-      editorRef.current.addEventListener("mouseup", handleMouseUp)
-
-      return () => {
-        document.removeEventListener("selectionchange", handleSelectionChange)
-        if (editorRef.current) {
-          editorRef.current.removeEventListener("keyup", handleKeyUp)
-          editorRef.current.removeEventListener("mouseup", handleMouseUp)
-        }
-      }
+      document.execCommand(command, false, value)
+      updateContent()
     }
-  }, [updateActiveStates])
+  }
 
-  const handleCreateBlog = async () => {
-    if (!title || !category || !editorRef.current?.innerHTML) {
-      toast.error("Please fill in all required fields")
+  // Text formatting - only 3 options
+  const formatBold = () => executeCommand("bold")
+  const formatItalic = () => executeCommand("italic")
+  const formatUnderline = () => executeCommand("underline")
+
+  // Insert heading
+  const insertHeading = (level: number) => {
+    const tag = level === 1 ? "h1" : "h2"
+    executeCommand("formatBlock", `<${tag}>`)
+  }
+
+  // Insert list
+  const insertList = (ordered: boolean) => {
+    if (ordered) {
+      executeCommand("insertOrderedList")
+    } else {
+      executeCommand("insertUnorderedList")
+    }
+  }
+
+  // Apply alignment - only 3 options
+  const applyAlignment = (alignment: string) => {
+    setCurrentAlignment(alignment)
+    switch (alignment) {
+      case "left":
+        executeCommand("justifyLeft")
+        break
+      case "center":
+        executeCommand("justifyCenter")
+        break
+      case "right":
+        executeCommand("justifyRight")
+        break
+    }
+  }
+
+  // Add image
+  const addImage = () => {
+    if (imageUrl.trim()) {
+      const imageHtml = `<img src="${imageUrl}" alt="Blog image" style="max-width: 100%; height: auto; margin: 1rem 0; border-radius: 0.5rem; display: block;" />`
+      executeCommand("insertHTML", imageHtml)
+      setImageUrl("")
+      setShowImagePopover(false)
+    }
+  }
+
+  // Add link
+  const addLink = () => {
+    if (linkText.trim() && linkUrl.trim()) {
+      const linkHtml = `<a href="${linkUrl}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline;">${linkText}</a>`
+      executeCommand("insertHTML", linkHtml)
+      setLinkText("")
+      setLinkUrl("")
+      setShowLinkPopover(false)
+    }
+  }
+
+  // Update content state
+  const updateContent = () => {
+    if (editorRef.current) {
+      setContent(editorRef.current.innerHTML)
+    }
+  }
+
+  // Handle editor input
+  const handleEditorInput = () => {
+    updateContent()
+  }
+
+  // Handle blog publishing
+  const handlePublishBlog = async () => {
+    if (!title.trim()) {
+      toast.error("Please enter a title for your blog post")
+      return
+    }
+
+    if (!category) {
+      toast.error("Please select a category")
+      return
+    }
+
+    if (!content.trim()) {
+      toast.error("Please add some content to your blog post")
       return
     }
 
     try {
       await publishBlog.mutateAsync({
         title,
-        content: editorRef.current.innerHTML,
+        content,
         category,
         tags,
       })
-      
       router.push("/admin/blogs")
     } catch (error) {
-      // Error is handled by the hook
+      // Error is already handled by the usePublishBlog hook
+      console.error("Failed to publish blog:", error)
     }
+  }
+
+  if (isViewMode) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="flex items-center justify-between mb-8">
+            <Button variant="ghost" onClick={() => setIsViewMode(false)} className="text-gray-600 hover:text-gray-900">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Editor
+            </Button>
+            <Button 
+              className="bg-gray-900 text-white hover:bg-gray-700"
+              onClick={handlePublishBlog}
+              disabled={publishBlog.isLoading}
+            >
+              {publishBlog.isLoading ? (
+                "Publishing..."
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Publish Blog
+                </>
+              )}
+            </Button>
+          </div>
+
+          <Card className="bg-white shadow-lg">
+            <CardHeader className="border-b">
+              <CardTitle className="text-3xl font-bold">{title || "Untitled Blog Post"}</CardTitle>
+              <div className="flex items-center gap-4 text-sm text-gray-600 mt-4">
+                {category && (
+                  <Badge variant="outline" className="border-gray-300">
+                    {category}
+                  </Badge>
+                )}
+                {tags.length > 0 && (
+                  <div className="flex gap-2">
+                    {tags.map((tag, index) => (
+                      <Badge key={index} variant="secondary" className="bg-gray-100 text-gray-700">
+                        #{tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-8">
+              <div className="prose prose-lg max-w-none">
+                <div dangerouslySetInnerHTML={{ __html: content }} />
+                {!content && (
+                  <p className="text-gray-500 italic text-center py-8">
+                    No content yet. Go back to the editor to start writing!
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -257,24 +251,30 @@ export default function BlogCreationPage() {
       <div className="max-w-4xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <Button variant="ghost" className="text-gray-600 hover:text-gray-900" onClick={() => router.push("/admin/blogs")}>
+          <Button variant="ghost" className="text-gray-600 hover:text-gray-900">
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Blogs
           </Button>
-          <Button 
-            className="bg-gray-900 text-white hover:bg-gray-700"
-            onClick={handleCreateBlog}
-            disabled={publishBlog.isLoading}
-          >
-            {publishBlog.isLoading ? (
-              "Creating..."
-            ) : (
-              <>
-                <Send className="w-4 h-4 mr-2" />
-                Create Blog
-              </>
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsViewMode(true)} className="border-gray-200">
+              <Eye className="w-4 h-4 mr-2" />
+              Preview
+            </Button>
+            <Button 
+              className="bg-gray-900 text-white hover:bg-gray-700"
+              onClick={handlePublishBlog}
+              disabled={publishBlog.isLoading}
+            >
+              {publishBlog.isLoading ? (
+                "Publishing..."
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Create Blog
+                </>
+              )}
+            </Button>
+          </div>
         </div>
 
         {/* Title */}
@@ -333,231 +333,226 @@ export default function BlogCreationPage() {
         </div>
 
         {/* Editor Toolbar */}
-        <div className="bg-gray-50 rounded-t-lg border border-gray-200 border-b-0">
+        <div className="bg-gray-50 rounded-lg border border-gray-200 mb-4">
           <div className="flex items-center gap-1 p-2 flex-wrap">
-            {/* Text Formatting */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => formatText("bold")}
-              className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
-                activeStates.bold ? "bg-gray-200 text-gray-900" : ""
-              }`}
-            >
-              <Bold className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => formatText("italic")}
-              className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
-                activeStates.italic ? "bg-gray-200 text-gray-900" : ""
-              }`}
-            >
-              <Italic className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => formatText("underline")}
-              className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
-                activeStates.underline ? "bg-gray-200 text-gray-900" : ""
-              }`}
-            >
-              <Underline className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => formatText("strikethrough")}
-              className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
-                activeStates.strikethrough ? "bg-gray-200 text-gray-900" : ""
-              }`}
-            >
-              <Strikethrough className="w-4 h-4" />
-            </Button>
+            {/* Heading Controls */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => insertHeading(1)}
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                title="Heading 1"
+              >
+                <Heading1 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => insertHeading(2)}
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                title="Heading 2"
+              >
+                <Heading2 className="w-4 h-4" />
+              </Button>
+            </div>
 
             <Separator orientation="vertical" className="h-6 bg-gray-300 mx-1" />
 
-            {/* Headings */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => formatText("h1")}
-              className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
-                activeStates.h1 ? "bg-gray-200 text-gray-900" : ""
-              }`}
-            >
-              <Heading1 className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => formatText("h2")}
-              className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
-                activeStates.h2 ? "bg-gray-200 text-gray-900" : ""
-              }`}
-            >
-              <Heading2 className="w-4 h-4" />
-            </Button>
+            {/* Text Formatting - Only 3 options */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={formatBold}
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                title="Bold"
+              >
+                <Bold className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={formatItalic}
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                title="Italic"
+              >
+                <Italic className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={formatUnderline}
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                title="Underline"
+              >
+                <Underline className="w-4 h-4" />
+              </Button>
+            </div>
 
             <Separator orientation="vertical" className="h-6 bg-gray-300 mx-1" />
 
             {/* Lists */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => formatText("ul")}
-              className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
-                activeStates.ul ? "bg-gray-200 text-gray-900" : ""
-              }`}
-            >
-              <List className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => formatText("ol")}
-              className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
-                activeStates.ol ? "bg-gray-200 text-gray-900" : ""
-              }`}
-            >
-              <ListOrdered className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => formatText("quote")}
-              className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
-                activeStates.quote ? "bg-gray-200 text-gray-900" : ""
-              }`}
-            >
-              <Quote className="w-4 h-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => insertList(false)}
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                title="Bullet List"
+              >
+                <List className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => insertList(true)}
+                className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                title="Numbered List"
+              >
+                <ListOrdered className="w-4 h-4" />
+              </Button>
+            </div>
 
             <Separator orientation="vertical" className="h-6 bg-gray-300 mx-1" />
 
-            {/* Alignment */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => formatText("justifyLeft")}
-              className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
-                activeStates.justifyLeft ? "bg-gray-200 text-gray-900" : ""
-              }`}
-            >
-              <AlignLeft className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => formatText("justifyCenter")}
-              className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
-                activeStates.justifyCenter ? "bg-gray-200 text-gray-900" : ""
-              }`}
-            >
-              <AlignCenter className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => formatText("justifyRight")}
-              className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
-                activeStates.justifyRight ? "bg-gray-200 text-gray-900" : ""
-              }`}
-            >
-              <AlignRight className="w-4 h-4" />
-            </Button>
+            {/* Text Alignment - Only 3 options */}
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => applyAlignment("left")}
+                className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
+                  currentAlignment === "left" ? "bg-gray-200" : ""
+                }`}
+                title="Align Left"
+              >
+                <AlignLeft className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => applyAlignment("center")}
+                className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
+                  currentAlignment === "center" ? "bg-gray-200" : ""
+                }`}
+                title="Align Center"
+              >
+                <AlignCenter className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => applyAlignment("right")}
+                className={`text-gray-600 hover:text-gray-900 hover:bg-gray-100 ${
+                  currentAlignment === "right" ? "bg-gray-200" : ""
+                }`}
+                title="Align Right"
+              >
+                <AlignRight className="w-4 h-4" />
+              </Button>
+            </div>
 
             <Separator orientation="vertical" className="h-6 bg-gray-300 mx-1" />
 
-            {/* Link */}
-            <Popover open={showLinkPopover} onOpenChange={setShowLinkPopover}>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                  <Link className="w-4 h-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Enter URL"
-                    value={linkUrl}
-                    onChange={(e) => setLinkUrl(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && insertLink()}
-                  />
-                  <Button onClick={insertLink} size="sm">
-                    Add
+            {/* Media */}
+            <div className="flex items-center gap-1">
+              <Popover open={showImagePopover} onOpenChange={setShowImagePopover}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    title="Insert Image"
+                  >
+                    <ImageIcon className="w-4 h-4" />
                   </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* Color */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-                  <Palette className="w-4 h-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64">
-                <div className="grid grid-cols-6 gap-2">
-                  {colors.map((color) => (
-                    <button
-                      key={color}
-                      className="w-8 h-8 rounded border border-gray-200 hover:scale-110 transition-transform"
-                      style={{ backgroundColor: color }}
-                      onClick={() => formatText("foreColor", color)}
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-gray-700">Insert Image</div>
+                    <Input
+                      placeholder="Enter image URL (https://...)"
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                      onKeyPress={(e) => e.key === "Enter" && imageUrl && addImage()}
                     />
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
+                    <Button onClick={addImage} className="w-full" disabled={!imageUrl}>
+                      Insert Image
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
 
-            {/* Other Tools */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => formatText("code")}
-              className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-            >
-              <Code className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => formatText("hr")}
-              className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-            >
-              <Minus className="w-4 h-4" />
-            </Button>
-            <Button variant="ghost" size="sm" className="text-gray-600 hover:text-gray-900 hover:bg-gray-100">
-              <ImageIcon className="w-4 h-4" />
-            </Button>
+              <Popover open={showLinkPopover} onOpenChange={setShowLinkPopover}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                    title="Insert Link"
+                  >
+                    <LinkIcon className="w-4 h-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="space-y-2">
+                    <div className="text-sm font-medium text-gray-700">Insert Link</div>
+                    <Input
+                      placeholder="Link text (what people will see)"
+                      value={linkText}
+                      onChange={(e) => setLinkText(e.target.value)}
+                    />
+                    <Input
+                      placeholder="URL (https://...)"
+                      value={linkUrl}
+                      onChange={(e) => setLinkUrl(e.target.value)}
+                      onKeyPress={(e) => e.key === "Enter" && linkText && linkUrl && addLink()}
+                    />
+                    <Button onClick={addLink} className="w-full" disabled={!linkText || !linkUrl}>
+                      Insert Link
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
 
-        {/* Content Area - WYSIWYG Editor */}
-        <div className="bg-white rounded-b-lg border border-gray-200 min-h-[400px]">
+        {/* Content Editor */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4 min-h-[500px]">
           <div
             ref={editorRef}
             contentEditable
-            className="p-4 min-h-[400px] focus:outline-none prose max-w-none"
-            onFocus={(e) => {
-              if (e.currentTarget.textContent === "") {
-                e.currentTarget.dataset.empty = "true"
-              } else {
-                delete e.currentTarget.dataset.empty
-              }
-            }}
-            onBlur={(e) => {
-              if (e.currentTarget.textContent === "") {
-                e.currentTarget.dataset.empty = "true"
-              } else {
-                delete e.currentTarget.dataset.empty
-              }
+            onInput={handleEditorInput}
+            className="min-h-[450px] outline-none prose prose-lg max-w-none focus:ring-2 focus:ring-gray-200 focus:ring-offset-2 rounded p-4"
+            suppressContentEditableWarning={true}
+            style={{
+              minHeight: "450px",
+              padding: "1rem",
+              lineHeight: "1.6",
+              direction: "ltr", // Explicitly set left-to-right text direction
+              textAlign: "left", // Default text alignment
             }}
           />
+        </div>
+
+        {/* Status Bar */}
+        <div className="mt-4 text-sm text-gray-500 flex justify-between items-center">
+          <div>
+            {content && (
+              <span>
+                Words:{" "}
+                {
+                  content
+                    .replace(/<[^>]*>/g, "")
+                    .split(/\s+/)
+                    .filter((word) => word.length > 0).length
+                }
+              </span>
+            )}
+          </div>
+          <div className="text-xs">💡 Select text and use toolbar buttons to format</div>
         </div>
       </div>
     </div>

@@ -39,7 +39,7 @@ export const usePublishBlog = () => {
     },
     onSuccess: () => {
       // Invalidate relevant queries after successful mutation
-      queryClient.invalidateQueries({ queryKey: ['blogPosts'] });
+      queryClient.invalidateQueries({ queryKey: ['blogs'] });
       toast.success('Blog post created successfully!');
     },
     onError: (error) => {
