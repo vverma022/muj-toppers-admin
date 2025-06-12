@@ -1,24 +1,29 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import type { NextRequest } from 'next/server'
 
 // Helper function to add CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+const getCorsHeaders = (origin: string) => ({
+  'Access-Control-Allow-Origin': origin,
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+  'Access-Control-Allow-Credentials': 'true',
   'Access-Control-Max-Age': '86400',
-}
+})
 
 // Handle OPTIONS request for CORS
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin') || 'http://localhost:3000'
   return new NextResponse(null, {
     status: 204,
-    headers: corsHeaders,
+    headers: getCorsHeaders(origin),
   })
 }
 
 // GET /api/blogs - Get all blogs
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const origin = request.headers.get('origin') || 'http://localhost:3000'
+  
   try {
     const blogs = await prisma.blog.findMany({
       orderBy: {
@@ -38,7 +43,7 @@ export async function GET() {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        ...corsHeaders
+        ...getCorsHeaders(origin)
       }
     })
   } catch (error) {
@@ -49,7 +54,7 @@ export async function GET() {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          ...corsHeaders
+          ...getCorsHeaders(origin)
         }
       }
     )
