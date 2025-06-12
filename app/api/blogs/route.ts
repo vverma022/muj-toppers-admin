@@ -4,8 +4,9 @@ import { prisma } from '@/lib/prisma'
 // Helper function to add CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+  'Access-Control-Max-Age': '86400',
 }
 
 // Handle OPTIONS request for CORS
@@ -33,16 +34,23 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json(blogs, {
-      headers: corsHeaders
+    return new NextResponse(JSON.stringify(blogs), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      }
     })
   } catch (error) {
     console.error('Error fetching blogs:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch blogs' },
+    return new NextResponse(
+      JSON.stringify({ error: 'Failed to fetch blogs' }),
       { 
         status: 500,
-        headers: corsHeaders
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        }
       }
     )
   }
@@ -58,11 +66,14 @@ export async function POST(request: Request) {
     // Validate required fields
     if (!title || !content || !category) {
       console.log('Missing required fields:', { title, content, category })
-      return NextResponse.json(
-        { error: 'Missing required fields' },
+      return new NextResponse(
+        JSON.stringify({ error: 'Missing required fields' }),
         { 
           status: 400,
-          headers: corsHeaders
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders
+          }
         }
       )
     }
@@ -85,17 +96,26 @@ export async function POST(request: Request) {
     })
 
     console.log('Blog created:', blog)
-    return NextResponse.json(blog, { 
-      status: 201,
-      headers: corsHeaders
-    })
+    return new NextResponse(
+      JSON.stringify(blog),
+      { 
+        status: 201,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        }
+      }
+    )
   } catch (error) {
     console.error('Error creating blog:', error)
-    return NextResponse.json(
-      { error: 'Failed to create blog' },
+    return new NextResponse(
+      JSON.stringify({ error: 'Failed to create blog' }),
       { 
         status: 500,
-        headers: corsHeaders
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        }
       }
     )
   }
