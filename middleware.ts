@@ -1,22 +1,47 @@
-// This file can be empty or removed since we'll handle auth at the page level 
-
 import { withAuth } from "next-auth/middleware"
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
+// CORS middleware function
+function corsMiddleware(request: NextRequest) {
+  const origin = request.headers.get('origin') || 'http://localhost:3000'
+  const response = NextResponse.next()
+
+  response.headers.set('Access-Control-Allow-Origin', origin)
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  response.headers.set('Access-Control-Allow-Credentials', 'true')
+
+  return response
+}
+
+// Combine auth and CORS middleware
 export default withAuth({
   pages: {
     signIn: "/signin",
   },
   callbacks: {
     authorized: ({ token }) => {
-      // Redirect to signin if no token is found
       return !!token
     },
   },
 })
 
+// Handle CORS for API routes
+export function middleware(request: NextRequest) {
+  // Apply CORS middleware for API routes
+  if (request.nextUrl.pathname.startsWith('/api')) {
+    return corsMiddleware(request)
+  }
+  
+  return NextResponse.next()
+}
+
 export const config = {
   matcher: [
     // Match all paths except public ones and static assets
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:jpg|jpeg|png|gif|ico|svg|css|js)$|signin|api/auth).*)',
+    // Add API routes matcher
+    '/api/:path*'
   ],
-} 
+}
