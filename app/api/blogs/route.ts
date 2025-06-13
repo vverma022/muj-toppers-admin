@@ -25,31 +25,41 @@ export async function OPTIONS(request: NextRequest) {
 // GET request - returns mock data to test if route works
 export async function GET(request: NextRequest) {
   const origin = request.headers.get('origin')
-  
-  // Mock data for testing
-  const mockBlogs = [
-    {
-      id: 1,
-      title: "First Blog Post",
-      content: "This is the content of the first blog post.",
-      category: "Technology",
-      tags: ["tech", "web"],
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: 2,
-      title: "Second Blog Post", 
-      content: "This is the content of the second blog post.",
-      category: "Education",
-      tags: ["education", "learning"],
-      createdAt: new Date().toISOString()
-    }
-  ]
+  try {
+    const blogs = await prisma.blog.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        category: true,
+        tags: true,
+        createdAt: true,
+      }
+    })
 
-  return NextResponse.json(mockBlogs, {
-    status: 200,
-    headers: corsHeaders(origin),
-  })
+    return new NextResponse(JSON.stringify(blogs), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders(origin)
+      }
+    })
+  } catch (error) {
+    console.error('Error fetching blogs:', error)
+    return new NextResponse(
+      JSON.stringify({ error: 'Failed to fetch blogs' }),
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders(origin)
+        }
+      }
+    )
+  }
 }
 
 // POST /api/blogs - Create a new blog
