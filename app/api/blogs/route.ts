@@ -1,64 +1,55 @@
-import { NextResponse } from 'next/server'
+
 import { prisma } from '@/lib/prisma'
-import type { NextRequest } from 'next/server'
-
 // Helper function to add CORS headers
-const getCorsHeaders = (origin: string) => ({
-  'Access-Control-Allow-Origin': origin,
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
-  'Access-Control-Allow-Credentials': 'true',
-  'Access-Control-Max-Age': '86400',
-})
+import { NextRequest, NextResponse } from 'next/server'
 
-// Handle OPTIONS request for CORS
+// Simple CORS headers
+function corsHeaders(origin: string | null) {
+  return {
+    'Access-Control-Allow-Origin': origin || '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Access-Control-Allow-Credentials': 'true',
+  }
+}
+
+// Handle preflight OPTIONS request
 export async function OPTIONS(request: NextRequest) {
-  const origin = request.headers.get('origin') || 'http://localhost:3000'
+  const origin = request.headers.get('origin')
   return new NextResponse(null, {
-    status: 204,
-    headers: getCorsHeaders(origin),
+    status: 200,
+    headers: corsHeaders(origin),
   })
 }
 
-// GET /api/blogs - Get all blogs
+// GET request - returns mock data to test if route works
 export async function GET(request: NextRequest) {
-  const origin = request.headers.get('origin') || 'http://localhost:3000'
+  const origin = request.headers.get('origin')
   
-  try {
-    const blogs = await prisma.blog.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      },
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        category: true,
-        tags: true,
-        createdAt: true,
-      }
-    })
+  // Mock data for testing
+  const mockBlogs = [
+    {
+      id: 1,
+      title: "First Blog Post",
+      content: "This is the content of the first blog post.",
+      category: "Technology",
+      tags: ["tech", "web"],
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 2,
+      title: "Second Blog Post", 
+      content: "This is the content of the second blog post.",
+      category: "Education",
+      tags: ["education", "learning"],
+      createdAt: new Date().toISOString()
+    }
+  ]
 
-    return new NextResponse(JSON.stringify(blogs), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        ...getCorsHeaders(origin)
-      }
-    })
-  } catch (error) {
-    console.error('Error fetching blogs:', error)
-    return new NextResponse(
-      JSON.stringify({ error: 'Failed to fetch blogs' }),
-      { 
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCorsHeaders(origin)
-        }
-      }
-    )
-  }
+  return NextResponse.json(mockBlogs, {
+    status: 200,
+    headers: corsHeaders(origin),
+  })
 }
 
 // POST /api/blogs - Create a new blog
