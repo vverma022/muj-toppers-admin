@@ -1,18 +1,22 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
-// Helper function to add CORS headers
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+// Simple CORS headers
+function corsHeaders(origin: string | null) {
+  return {
+    'Access-Control-Allow-Origin': origin || '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Access-Control-Allow-Credentials': 'true',
+  }
 }
 
-// Handle OPTIONS request for CORS
-export async function OPTIONS() {
+// Handle preflight OPTIONS request
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin')
   return new NextResponse(null, {
-    status: 204,
-    headers: corsHeaders,
+    status: 200,
+    headers: corsHeaders(origin),
   })
 }
 
@@ -34,7 +38,7 @@ export async function DELETE(
         { error: 'Blog not found' },
         { 
           status: 404,
-          headers: corsHeaders
+          headers: corsHeaders(origin)
         }
       )
     }
@@ -48,7 +52,7 @@ export async function DELETE(
       { message: 'Blog deleted successfully' },
       { 
         status: 200,
-        headers: corsHeaders
+        headers: corsHeaders(origin)
       }
     )
   } catch (error) {
@@ -57,7 +61,7 @@ export async function DELETE(
       { error: 'Failed to delete blog' },
       { 
         status: 500,
-        headers: corsHeaders
+        headers: corsHeaders(origin)
       }
     )
   }
@@ -65,9 +69,10 @@ export async function DELETE(
 
 // GET /api/blogs/[id] - Get a blog by ID
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const origin = request.headers.get('origin')
   try {
     const { id } = params
 
@@ -84,29 +89,38 @@ export async function GET(
     })
 
     if (!blog) {
-      return NextResponse.json(
-        { error: 'Blog not found' },
+      return new NextResponse(
+        JSON.stringify({ error: 'Blog not found' }),
         { 
           status: 404,
-          headers: corsHeaders
+          headers: {
+            'Content-Type': 'application/json',
+            ...corsHeaders(origin)
+          }
         }
       )
     }
 
-    return NextResponse.json(
-      blog,
+    return new NextResponse(
+      JSON.stringify(blog),
       { 
         status: 200,
-        headers: corsHeaders
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders(origin)
+        }
       }
     )
   } catch (error) {
     console.error('Error fetching blog:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch blog' },
+    return new NextResponse(
+      JSON.stringify({ error: 'Failed to fetch blog' }),
       { 
         status: 500,
-        headers: corsHeaders
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders(origin)
+        }
       }
     )
   }
